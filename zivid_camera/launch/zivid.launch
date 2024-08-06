@@ -1,0 +1,17 @@
+<launch>
+    <arg name="hw_namespace" default="setup1/sensor1"/>
+	<arg name="hw_ip" default="2149B302" doc="sensor IP address"/>
+
+	<arg name="camera_name"              		default="camera"/>		<!-- Note: Replace with camera name -->
+	
+    <group ns="$(arg hw_namespace)">
+		<node name="zivid_camera" pkg="zivid_camera" type="zivid_camera_node" ns="camera" output="screen" required="True">
+			<param type="string" name="frame_id" value="$(arg hw_namespace)/$(arg camera_name)_color_optical_frame" />
+			<param type="string" name="serial_number" value=":$(arg hw_ip)" />
+		</node>
+
+		<param name="setting_path" value="$(find zivid_camera)/settings/10sec.yml" />
+		<param name="setting_path_2d" value="$(find zivid_camera)/settings/2d.yml" />
+    	<node name="zivid_bridge_node" pkg="zivid_camera" type="zivid_bridge_node" output="screen" required="True"/>
+	</group> 
+</launch>

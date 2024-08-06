@@ -1,0 +1,59 @@
+__version__:
+  serializer: 1
+  data: 12
+Settings:
+  Acquisitions:
+    - Acquisition:
+        Aperture: 3.16487682085828
+        Brightness: 1.8
+        ExposureTime: 20000
+        Gain: 1.00568057191533
+    - Acquisition:
+        Aperture: 7.74999287467805
+        Brightness: 1.79002517505152
+        ExposureTime: 10000
+        Gain: 1
+    - Acquisition:
+        Aperture: 2.21189479547582
+        Brightness: 1.8
+        ExposureTime: 90000
+        Gain: 1.74662127231494
+  Diagnostics:
+    Enabled: no
+  Experimental:
+    Engine: phase
+  Processing:
+    Color:
+      Balance:
+        Blue: 1
+        Green: 1
+        Red: 1
+      Experimental:
+        Mode: toneMapping
+      Gamma: 1
+    Filters:
+      Experimental:
+        ContrastDistortion:
+          Correction:
+            Enabled: yes
+            Strength: 0.3
+          Removal:
+            Enabled: no
+            Threshold: 0.2
+      Noise:
+        Removal:
+          Enabled: yes
+          Threshold: 5
+      Outlier:
+        Removal:
+          Enabled: yes
+          Threshold: 10
+      Reflection:
+        Removal:
+          Enabled: yes
+          Experimental:
+            Mode: global
+      Smoothing:
+        Gaussian:
+          Enabled: yes
+          Sigma: 1

@@ -15,6 +15,18 @@
 #include <Zivid/Application.h>
 #include <Zivid/Camera.h>
 #include <Zivid/Image.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+
+#include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+
+#include <cv_bridge/cv_bridge.h>
+#include <exsensia_vision_module_msgs/cameraInfo.h>
+
 
 namespace Zivid
 {
@@ -30,12 +42,21 @@ enum class CameraStatus
   Disconnected
 };
 
+struct CameraIntrinsicsCV
+  {
+      cv::Mat distortionCoefficients;
+      cv::Mat cameraMatrix;
+  };
+
 class ZividCamera
 {
 public:
   ZividCamera(ros::NodeHandle& nh, ros::NodeHandle& priv);
 
 private:
+
+  
+
   void onCameraConnectionKeepAliveTimeout(const ros::TimerEvent& event);
   void reconnectToCameraIfNecessary();
   void setCameraStatus(CameraStatus camera_status);
@@ -43,28 +64,36 @@ private:
   bool cameraInfoSerialNumberServiceHandler(CameraInfoSerialNumber::Request& req,
                                             CameraInfoSerialNumber::Response& res);
   bool captureServiceHandler(Capture::Request& req, Capture::Response& res);
-  bool captureAndSaveServiceHandler(CaptureAndSave::Request& req, CaptureAndSave::Response& res);
   bool capture2DServiceHandler(Capture2D::Request& req, Capture2D::Response& res);
   bool captureAssistantSuggestSettingsServiceHandler(CaptureAssistantSuggestSettings::Request& req,
                                                      CaptureAssistantSuggestSettings::Response& res);
   bool loadSettingsFromFileServiceHandler(LoadSettingsFromFile::Request& req, LoadSettingsFromFile::Response&);
   bool loadSettings2DFromFileServiceHandler(LoadSettings2DFromFile::Request& req, LoadSettings2DFromFile::Response&);
+  bool callbackServerCameraInfo(exsensia_vision_module_msgs::cameraInfo::Request& req, exsensia_vision_module_msgs::cameraInfo::Response& res);
   void serviceHandlerHandleCameraConnectionLoss();
   bool isConnectedServiceHandler(IsConnected::Request& req, IsConnected::Response& res);
-  void publishFrame(const Zivid::Frame& frame);
-  Zivid::Frame invokeCaptureAndPublishFrame();
+  void publishFrame(Zivid::Frame&& frame);
   bool shouldPublishPointsXYZ() const;
   bool shouldPublishPointsXYZRGBA() const;
   bool shouldPublishColorImg() const;
+  bool shouldPublishColorRectImg() const;
   bool shouldPublishDepthImg() const;
   bool shouldPublishSnrImg() const;
   bool shouldPublishNormalsXYZ() const;
   std_msgs::Header makeHeader();
   void publishPointCloudXYZ(const std_msgs::Header& header, const Zivid::PointCloud& point_cloud);
-  void publishPointCloudXYZRGBA(const std_msgs::Header& header, const Zivid::PointCloud& point_cloud);
+  void publishPointCloudXYZRGB(const std_msgs::Header& header, const Zivid::PointCloud& point_cloud);
+  cv::Mat imageToBGR(const Zivid::Image<Zivid::ColorRGBA> &image);
+  CameraIntrinsicsCV reformatCameraIntrinsics(const Zivid::CameraIntrinsics &cameraIntrinsics);
+
   void publishColorImage(const std_msgs::Header& header, const sensor_msgs::CameraInfoConstPtr& camera_info,
                          const Zivid::PointCloud& point_cloud);
   void publishColorImage(const std_msgs::Header& header, const sensor_msgs::CameraInfoConstPtr& camera_info,
+                         const Zivid::Image<Zivid::ColorRGBA>& image);
+
+  void publishColorImageRect(const std_msgs::Header& header, const sensor_msgs::CameraInfoConstPtr& camera_info,
+                         const Zivid::PointCloud& point_cloud);
+  void publishColorImageRect(const std_msgs::Header& header, const sensor_msgs::CameraInfoConstPtr& camera_info,
                          const Zivid::Image<Zivid::ColorRGBA>& image);
   void publishDepthImage(const std_msgs::Header& header, const sensor_msgs::CameraInfoConstPtr& camera_info,
                          const Zivid::PointCloud& point_cloud);
@@ -86,6 +115,7 @@ private:
   bool use_latched_publisher_for_points_xyz_;
   bool use_latched_publisher_for_points_xyzrgba_;
   bool use_latched_publisher_for_color_image_;
+  bool use_latched_publisher_for_color_image_rect_;
   bool use_latched_publisher_for_depth_image_;
   bool use_latched_publisher_for_snr_image_;
   bool use_latched_publisher_for_normals_xyz_;
@@ -93,17 +123,18 @@ private:
   ros::Publisher points_xyzrgba_publisher_;
   image_transport::ImageTransport image_transport_;
   image_transport::CameraPublisher color_image_publisher_;
+  image_transport::CameraPublisher color_image_rect_publisher_;
   image_transport::CameraPublisher depth_image_publisher_;
   image_transport::CameraPublisher snr_image_publisher_;
   ros::Publisher normals_xyz_publisher_;
   ros::ServiceServer camera_info_serial_number_service_;
   ros::ServiceServer camera_info_model_name_service_;
   ros::ServiceServer capture_service_;
-  ros::ServiceServer capture_and_save_service_;
   ros::ServiceServer capture_2d_service_;
   ros::ServiceServer capture_assistant_suggest_settings_service_;
   ros::ServiceServer load_settings_from_file_service_;
   ros::ServiceServer load_settings_2d_from_file_service_;
+  ros::ServiceServer serverCameraInfo_;
   ros::ServiceServer is_connected_service_;
   std::unique_ptr<Capture3DSettingsController> capture_settings_controller_;
   std::unique_ptr<Capture2DSettingsController> capture_2d_settings_controller_;
@@ -111,5 +142,7 @@ private:
   Zivid::Camera camera_;
   std::string frame_id_;
   unsigned int header_seq_;
+
+  
 };
 }  // namespace zivid_camera

@@ -28,7 +28,13 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   image_transport
   nodelet
+  pcl_conversions
+  pcl_ros
+  exsensia_vision_module_msgs
+  cv_bridge
 )
+
+find_package(OpenCV)
 
 find_package(Boost REQUIRED COMPONENTS filesystem)
 
@@ -84,7 +90,6 @@ add_service_files(
   srv
   FILES
   Capture.srv
-  CaptureAndSave.srv
   Capture2D.srv
   CaptureAssistantSuggestSettings.srv
   LoadSettingsFromFile.srv
@@ -133,7 +138,7 @@ target_compile_definitions(
   PRIVATE
   "ZIVID_ROS_DRIVER_VERSION=\"${${PROJECT_NAME}_VERSION}\""
 )
-target_link_libraries(${LIBRARY_NAME} PUBLIC ${catkin_LIBRARIES})
+target_link_libraries(${LIBRARY_NAME} PUBLIC ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 target_link_libraries(${LIBRARY_NAME} PRIVATE Zivid::Core)
 add_dependencies(
   ${LIBRARY_NAME}
@@ -142,12 +147,17 @@ add_dependencies(
   ${PROJECT_NAME}_generate_messages_cpp
 )
 
+include_directories(
+  include
+  ${catkin_INCLUDE_DIRS}
+)
+
 # Node
 set(NODE_NAME ${PROJECT_NAME}_node)
 add_executable(${NODE_NAME} src/node.cpp)
 turn_on_compiler_warnings_if_enabled(${NODE_NAME})
 target_include_directories(${NODE_NAME} SYSTEM PRIVATE ${catkin_INCLUDE_DIRS})
-target_link_libraries(${NODE_NAME} ${LIBRARY_NAME} ${catkin_LIBRARIES})
+target_link_libraries(${NODE_NAME} ${LIBRARY_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 add_dependencies(
   ${NODE_NAME}
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
@@ -170,13 +180,17 @@ target_include_directories(
   PRIVATE
   include
 )
-target_link_libraries(${NODELET_NAME} ${LIBRARY_NAME} ${catkin_LIBRARIES})
+target_link_libraries(${NODELET_NAME} ${LIBRARY_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 add_dependencies(
   ${NODELET_NAME}
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}
   ${LIBRARY_NAME}
 )
+
+add_executable(zivid_bridge_node src/main_zivid_bridge.cpp src/zivid_bridge.cpp )
+add_dependencies(zivid_bridge_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(zivid_bridge_node ${catkin_LIBRARIES})
 
 #############
 ## Install ##
